@@ -1,12 +1,12 @@
-from PIL import Image
+import docker
 import os
-import tensorflow as tf
-import numpy as np
-from numpy import asarray
+import shutil
+import time
+
+from docker.errors import NotFound
 
 menu = [   {'title': "info", 'url_name': "inf"},
         {'title':"mainpage", 'url_name':"home"}]
-
 
 class DataMixin:
     def get_user_context(self, **kwargs):
@@ -15,36 +15,60 @@ class DataMixin:
             return context
 
 
-def pil_loader(path: str) -> Image.Image:
-    with open(path, 'rb') as f:
-        img = Image.open(f)
-        return img.convert("RGB")
+def process_picture(image_name):
 
-def process_image(image_path, name):
-    model_path = os.path.join(os.getcwd(), 'models', 'my_model.keras')
-    autoencoder_model = tf.keras.models.load_model(model_path)
+    # создаем контейнер или запускаем если уже создан
+    client = docker.from_env()
 
-    image_path= os.path.join(os.getcwd(), 'media', 'images', name)
 
-    size = [540, 360]
-    im = pil_loader(image_path)
+    try:
+        container = client.containers.get("automatic_image_processing")
+        if container.status != 'running':
+            container.start()
+            print("Контейнер найден и успешно возообновлен!")
 
-    original_width, original_height = im.size
-    im = im.resize((size[0], size[1]))
-    im = im.convert("L")
-    im = asarray(im)
+    except NotFound:
+        print(" Контейнер не найден, запускаем новый")
+        Bind_path = os.path.join(os.getcwd(), 'temp')
+        volumes = {
+            Bind_path: {
+                'bind': '/app/temp/',
+                'mode': 'z'
+            }
+        }
+        try:
+            container = client.containers.run('image-processing',
+                                              volumes=volumes,
+                                              detach=True,
+                                              name="automatic_image_processing",)
+            print("Контейнер успешно запущен!")
+        except docker.errors.ContainerError as e:
+            print("Ошибка запуска контейнера:", str(e))
+        except docker.errors.ImageNotFound as e:
+            print("Ошибка поиска образа:", str(e))
 
-    im = im.reshape(size[1], size[0], 1)
-    im = np.array(im).astype('float32') / 255.0
-    expanded_im = np.expand_dims(im, axis=0)
+    # обмен картинками с контейнером
+    Request_imageF_path = os.path.join(os.getcwd(), 'temp', 'request')
+    Post_imageF_path = os.path.join(os.getcwd(), 'temp', 'post')
+    ProjectImageF_path = os.path.join(os.getcwd(), 'media', 'images')
+    ProjectEditedImageF_path = os.path.join(os.getcwd(), 'media', 'edited_images')
 
-    transformed_image = autoencoder_model.predict(expanded_im)
+    # закидываем картинку контейнеру
+    shutil.copy(os.path.join(ProjectImageF_path, image_name), os.path.join(Request_imageF_path, image_name))
+    # ожидаем когда контейнер вернет картинку а после останавливаем его
 
-    transformed_image = (transformed_image * 255).astype(np.uint8)
-    transformed_image = transformed_image.reshape(size[1], size[0])
-    transformed_image = Image.fromarray(transformed_image, mode='L')
+    file_list = os.listdir(Post_imageF_path)
+    image_files = [f for f in file_list if f.endswith((".jpg", ".png"))]
 
-    transformed_image = transformed_image.resize((original_width, original_height))
+    while len(image_files) == 0:
+        file_list = os.listdir(Post_imageF_path)
+        image_files = [f for f in file_list if f.endswith((".jpg", ".png"))]
+        time.sleep(0.005)
+    print("Получили изображения от контейнера:")
+    print(image_files)
+    container.stop(timeout=0)
 
-    image_path = os.path.join(os.getcwd(), 'media', 'images',"TR"+ name.rsplit(".", 1)[0] +".jpg")
-    transformed_image.save(image_path)
+    shutil.move(os.path.join(Post_imageF_path, image_name), os.path.join(ProjectEditedImageF_path,image_name))
+
+
+

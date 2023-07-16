@@ -25,7 +25,7 @@ from mainpage.views  import *
 
 urlpatterns = [
     path('admin/', admin.site.urls),
-    path('/', index),
+    path('', index),
     path('mainpage/', index, name="home"),
     path('info/', inf, name="inf"),
     path('gallery/<str:image_name>/', gal, name="gal"),

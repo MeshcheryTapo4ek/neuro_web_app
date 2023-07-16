@@ -20,7 +20,7 @@ def index(request):
             instance =  form.save()
             urk = instance.photo.url
             urr = urk.rsplit('/', 1)[-1]
-            process_image(urk,urr)
+            process_picture(urr)
             return redirect("/gallery/"+urr)
     else:
         form = UploadPic()
@@ -34,10 +34,9 @@ def reg(request):
 
 def gal(request,image_name):
 
-    im1 = image_name
-    im2 = "TR" + image_name
-    print(im1)
-    return render(request, 'mainpage/gall.html', {'menu': menu, 'im1':im1, 'im2':im2, 'media_url': MEDIA_URL} )
+    im = image_name
+    print(im)
+    return render(request, 'mainpage/gall.html', {'menu': menu, 'im':im, 'media_url': MEDIA_URL} )
 
 def inf(request):
     return render(request, 'mainpage/infopage.html', {'menu':menu})
