@@ -35,7 +35,6 @@ def reg(request):
 def gal(request,image_name):
 
     im = image_name
-    print(im)
     return render(request, 'mainpage/gall.html', {'menu': menu, 'im':im, 'media_url': MEDIA_URL} )
 
 def inf(request):

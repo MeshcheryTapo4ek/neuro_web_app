@@ -4,7 +4,7 @@ WORKDIR /app
 
 COPY function.py .
 COPY models ./models
-COPY temp ./temp
+COPY temp_list ./temp
 
 RUN pip install --upgrade pip
 RUN pip install pillow && pip install tensorflow &&  pip install keras
