@@ -1,11 +1,11 @@
 import shutil
 import time
+import multiprocessing
 
 # импортируем данные для работы с созданным классом CContainer
 from container_management.container_manager import *
 from mainpage import CContainer_list
 
-# Импортируем созданные контейнеры
 
 menu = [   {'title': "info", 'url_name': "inf"},
         {'title':"mainpage", 'url_name':"home"}]
@@ -17,10 +17,13 @@ class DataMixin:
             return context
 
 
-def process_picture(image_name):
+def user_process_picture(image_name):
 
-    # находим свободный контейнер
+    # ожидаем и находим свободный контейнер
     WorkingCContainer = find_first_stopped_container(CContainer_list)
+    while WorkingCContainer == None:
+        WorkingCContainer = find_first_stopped_container(CContainer_list)
+        time.sleep(0.05)
 
     # обмен картинками с контейнером
     Request_imageF_path = WorkingCContainer.request_path
@@ -48,6 +51,8 @@ def process_picture(image_name):
     stopCCont(WorkingCContainer)
 
     shutil.move(os.path.join(Post_imageF_path, image_name), os.path.join(ProjectEditedImageF_path,image_name))
+
+
 
 
 

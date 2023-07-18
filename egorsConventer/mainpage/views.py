@@ -1,3 +1,5 @@
+from multiprocessing import Process
+
 from django.contrib.auth import logout
 from django.contrib.auth.forms import UserCreationForm, AuthenticationForm
 from django.contrib.auth.views import LoginView
@@ -20,7 +22,12 @@ def index(request):
             instance =  form.save()
             urk = instance.photo.url
             urr = urk.rsplit('/', 1)[-1]
-            process_picture(urr)
+
+            # кажется эт все
+            process = Process(target= user_process_picture(urr) )
+            process.start()
+            process.join()
+
             return redirect("/gallery/"+urr)
     else:
         form = UploadPic()
